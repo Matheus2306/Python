@@ -2,7 +2,23 @@ import pytest
 from decimal import Decimal
 from entity.movimentacao import Movimentacao
 
+@pytest.mark.parametrize(
+        "tipo",
+        [
+            "transferência",
+            "comissão",
+            "teste",
+            "RECEITA",
+            ""
+        ]
+)
+
+def test_nao_permitir_tipos_invalidos(tipo):
+    with pytest.raises(ValueError):
+        Movimentacao("salário", tipo, Decimal("100"))
+
 def test_criar_receita_valida():
+    
     receita = Movimentacao(
         "Salário",
         "receita",
@@ -27,10 +43,6 @@ def test_criar_despesa_valida():
 def test_nao_permitir_descricao_vazia():
     with pytest.raises(ValueError):
         Movimentacao("", "despesa", Decimal("100"))
-
-def test_nao_permitir_tipo_invalido():
-    with pytest.raises(ValueError):
-        Movimentacao("salário", "inválido", Decimal("100"))
 
 def test_nao_permitir_valor_negativo():
     with pytest.raises(ValueError, match="Valor precisa ser valores numéricos, positivos e maiores que 0"):

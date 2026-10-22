@@ -1,6 +1,6 @@
 from decimal import Decimal, InvalidOperation
-import os
-import csv
+from pathlib import Path
+from utils import carregar_movimentacoes, criar_csv, limpa_terminal, inserir_dados,menu_terminal
 
 #& comentários pessoais
 #& para descobrir o tipo de uma variável devemos usa "type(<nome da variável>)"
@@ -17,61 +17,13 @@ import csv
 #~ Try/except ---- captura exceções
 #~ While true ---- executa um loop até ser interrompido com "break"
 #~ Return ---- retorna um resultado ou encerra uma função
+#~ .at[] do pandas altera um valor exxistente por indice, ou seja [indice, "nome da coluna"] = valor para alterar  
 #~
 #~------------------------------------------- 
 
 #? Variável global de armazenamento em lista das movimentações.
-movimentacoes = [
-        {
-            "descricao": "teste", 
-            "tipo":"receita", 
-            "valor": 200
-        },
-        {
-            "descricao": "teste1", 
-            "tipo":"despesa", 
-            "valor": 322
-        },
-        {
-            "descricao": "teste", 
-            "tipo":"receita", 
-            "valor": 92.23
-        },
-        {
-            "descricao": "teste", 
-            "tipo":"despesa", 
-            "valor": 44
-        },
-        {
-            "descricao": "teste", 
-            "tipo":"receita", 
-            "valor": 9950
-        },
-        {
-            "descricao": "teste", 
-            "tipo":"despesa", 
-            "valor": 800.33
-        },
-    ]
+caminho_csv = Path("movimentacoes.csv")
 
-#* Função para criar e inserir dados em um arquivo CSV
-#^ Método open abre um aquivo parâmetros (caminho do arquivo | modo de uso "w" = Write habilita o modo de escrita do .csv, "r" = read lê o .csv e mosta os dados, "a" = apprend insere os dados no arquivo | newline="" evita de ser inserida uma linha vazia | encoding é o tipo codificação do dado)
-#^ Writeheader() usa os parâmetros propostos anteriormente por uma váriavel decrita como escritor
-#^ para escrever uma linha do CSV usa o .writerow(dado) que recebe o objeto
-def criar_csv():
-    with open("Movimentacoes.csv", "w", newline="", encoding="utf-8") as arquivo:
-        escritor = csv.DictWriter(
-            arquivo,
-            fieldnames=["descricao", "tipo", "valor"]
-        )
-        escritor.writeheader()
-
-def inserir_dados(dado):
-    with open("Movimentacoes.csv", "a", newline="", encoding="utf-8") as arquivo:
-        escritor = csv.writer(arquivo)
-        escritor.writerow(dado)
-
-        
 
 
 #* Função de cadastro das movimentações
@@ -79,7 +31,8 @@ def inserir_dados(dado):
 #^ Input: realisa a entrada de dados do usuário por padrão recebe string
 #^ Decimal: transforma os números escritos pelo input em valor decimal podendo ser calculado posteriormente
 #^ Caso algum erro envia uma exceção de valor inválido usando o invalid operation
-#^ .append em movimentações realiza a adição na lista as movimentações criadas.
+#^ .append em movimentações realiza a adição na lista as movimentações criadas. (método usando dos arrays)
+#^ Agora usa de inserir dados para enviar para o arquivo .csv
 def cadastrar_movimentacao():
     descricao = input('Descrição: ').strip()
 
@@ -104,42 +57,122 @@ def cadastrar_movimentacao():
         return
 
     try:
-        inserir_dados({
+        inserir_dados(caminho_csv= caminho_csv, dado = {
             "descricao": descricao,
             "tipo": tipo,
             "valor": valor
         })
-    except:
-        print("Não foi possivel salvar dados")
-    print("Movimentação cadastrada!")
+        print("Movimentação cadastrada!")
+    except Exception as e:
+        print(f"Não foi possivel salvar dados: {e}")
 
 
 #* Imprime o extrato das movimentações de transações passando pela lista completamente
-def imprimir_extrato():
-    if not movimentacoes:
+def imprimir_extrato(titulo = "LISTA DE MOVIMENTAÇÕES"):
+    tabela = carregar_movimentacoes(caminho_csv= caminho_csv)
+    if tabela.empty:
         print("Nenhuma movimentação cadastrada")
         return
-
-    print("=== LISTA DE MOVIMENTAÇÕES ===")
-    with open("Movimentacoes.csv", "r", newline="", encoding="utf-8") as arquivo:
-        leitor = csv.reader(arquivo)
-        for linha in enumerate(leitor, start = 1):
-            sinal = '+' if linha["tipo"] == "receita" else "-"
-            print(f"{indice} | {movimentacao["tipo"]} | {sinal}{movimentacao["valor"]:.2f}")
-            print("____________________________________________________________")
-
-
+    
+    print(f"=== {titulo} ===")
+    print("Indice | Descrição | Tipo | Valor")
+    for movimentacao in tabela.itertuples(index=True, name="movimentacao"):
+        print(f"{movimentacao.Index + 1} | {movimentacao.descricao} | {movimentacao.tipo} | {movimentacao.valor}")
+        print("_______________________________")
 
 #* Calcula o saldo passando pela lista de cadastro
 #^ Usa o tipo da movimentação para realizar o calculo "receita": soma; "despesa": subtrai;
-def calcular_saldo():
+def consultar_saldo():
     saldo = Decimal("0")
-    for movimentacao in movimentacoes:
-        if movimentacao["tipo"] == "receita":
-            saldo += movimentacao["valor"]
+    tabela = carregar_movimentacoes(caminho_csv= caminho_csv)
+
+    #! .interrows() retorna o index e o dado como uma tupla por isso usa-se o "_" que usa o para referênciar o index
+    for movimentacao in tabela.itertuples(index=True, name="Movimentacoes"):
+        valor = Decimal(movimentacao.valor)
+
+        if movimentacao.tipo == "receita":
+            saldo += valor
         else:
-            saldo -= movimentacao["valor"]
+            saldo -= valor
     return saldo
+
+
+#* Função de editar movimentação intermediaria onde acontece a seleção da linha para editar e imprime para o usuário qual será o campo para editar. 
+def editar_movimentacao():
+    while True:
+        limpa_terminal( )
+        tabela = carregar_movimentacoes(caminho_csv= caminho_csv)
+        if tabela.empty:
+            print("nenhuma movimentação cadastrada")
+
+        imprimir_extrato("EDITAR MOVIMENTAÇÃO")
+        print("Digite 0 para cancelar...")
+        try:
+            opcao = int(input("Escolha: "))
+        except ValueError as e:
+            print("Informe um valor válido")
+            input("Pressione Enter para continuar...")
+            continue
+
+        if opcao == 0:
+            return
+        
+        if opcao < 1 or opcao > len(tabela):
+            print("Movimentação inexistente.")
+            return
+
+        indice_real = opcao - 1
+        movimentacao_selecionada = tabela.iloc[indice_real]["descricao"]
+        print(f"Movimentação selecionada: {movimentacao_selecionada}")
+
+        #! Lambda cria uma função que executará somente quando for chamada.
+        menu_selecao = {
+            "1": ("Alterar descrição", lambda: editar_dado("descricao", indice_real, tabela)),
+            "2": ("Alterar tipo", lambda: editar_dado("tipo", indice_real, tabela)),
+            "3": ("Alterar valor", lambda: editar_dado("valor", indice_real, tabela)),
+            "0": ("Cancelar / Voltar", None)  
+        }
+        
+        menu_terminal(f"Editando: {movimentacao_selecionada}", menu_selecao)
+
+#* Função que edita os dados dinâmicamente por parâmetros
+#^ col: coluna a ser editada;
+#^ indice: linha que será editada;
+#^ df: DataFrame que será editado.
+def editar_dado(col, indice, df):
+    try:
+        novo_dado = input(f"Novo(a) {col}: ").strip()
+
+        if col == "tipo":
+            if novo_dado not in ("receita", "despesa"):
+                print("tipo inválido")
+                return
+            if novo_dado ==  df.at[indice, "tipo"]:
+                print("O novo tipo não deve ser igual ao anterior")
+                return
+
+        if col == "valor":
+            try:
+                valor = Decimal(novo_dado.replace(",", "."))
+            except InvalidOperation:
+                print("Valor inválido.")
+                return
+
+            if not valor.is_finite() or valor <= 0:
+                print("O valor deve ser positivo e finito.")
+                return
+
+            novo_dado = str(valor)
+
+        if col == "descricao" and not novo_dado:
+            print("A descrição não pode ser vazia.")
+            return
+        
+        df.at[indice, col] = novo_dado
+        df.to_csv(caminho_csv, index = False)
+        print("Movimentação atualizada com sucesso!")
+    except Exception as e:
+        print(f"Não foi possivel salvar {e}")
 
 
 #* Conta a quantidade de movimentações foram realizadas
@@ -147,9 +180,10 @@ def calcular_saldo():
 #^ Outro loop para contar a quantidade de cada pelo tipo
 def contar_movimentacoes():
     total_receita = 0
-    total_movimentacoes = len(movimentacoes)
-    for movimentacao in movimentacoes:
-        if movimentacao["tipo"] == "receita":
+    tabela = carregar_movimentacoes(caminho_csv= caminho_csv)
+    total_movimentacoes = len(tabela)
+    for movimentacao in tabela.itertuples(index=True, name="Movimentacoes"):
+        if movimentacao.tipo == "receita":
             total_receita += 1
     print("=== ESTATÍSTICAS ===")
     print(f"Total de movimentações: {total_movimentacoes}")
@@ -163,27 +197,15 @@ def filtrar_movimentacoes():
     limpa_terminal()
     
     while True:
-        print("=== FILTRAR MOVIMENTAÇÕES ===")
-        print("Qual tipo deseja consultar?")
-        print("1 - Receitas")
-        print("2 - Despesas")
-        print("0 - Voltar")
+        menu_filtrar = {
+            "1": (" - Receitas", filtro_por_opcao, "1"),
+            "2": (" - Receitas", filtro_por_opcao, "2"),
+            "0": (" - Sair", None)
+        }
 
-        opcao = input("Escolha: ").strip()
+        menu_terminal("filtrar movimentações", menu_filtrar)
+        return
 
-        if opcao == "1":
-            filtro_por_opcao("1")
-            
-        elif opcao == "2":
-            filtro_por_opcao("2")
-
-        elif opcao == "0":
-            return
-        else:
-            print("Escolha uma opção válida")
-
-        input("precione enter para continuar...")
-        limpa_terminal()
 
 
 #* realiza o filtro pela a opção selecionada 1 = receita, 2
@@ -193,34 +215,34 @@ def filtro_por_opcao(opcao):
         print("Opção não pode ser vazia")
         return
 
-    if not movimentacoes:
+    tabela = carregar_movimentacoes(caminho_csv= caminho_csv)
+
+    if tabela.empty:
         print("Sem movimentações")
         return
 
     tipo_selecionado = "receita" if opcao == "1" else "despesa"
-    filtrados = []
-    for movimentacao in movimentacoes:
-        if movimentacao["tipo"] == tipo_selecionado:
-            filtrados.append(movimentacao)
-
-    if not filtrados:
-        print("Nenhuma movimentação desse tipo encontrada.")
-        return
-
+    filtrados = tabela[tabela["tipo"] == tipo_selecionado]
 
     print(f"=== {tipo_selecionado.upper()} ===")
-    for movimentacao in filtrados:
-        print(f"Descrição: {movimentacao['descricao']}")
-        print(f"Valor: R$ {movimentacao['valor']:.2f}")
+    soma = Decimal("0")
+    #! .intertuples() realiza a mesma operação que o .interrows(), porém é mais rápido
+    for movimentacao in filtrados.itertuples():
+        valor = Decimal(movimentacao.valor)
+        print(f"Descrição: {movimentacao.descricao}")
+        print(f"Valor: R$ {valor:.2f}")
         print("--------------------------")
+        soma += valor
+    print(f"Valor total: {soma}")
 
 
 #* Função de exclusão de objetos do array
 #^ Mostra uma lista de várias movimentações e o usuário insere um indice de um dos objetos
 #^ Valida se o número digitado é menor que 0 e por fim valida se o o indice é válido
-#^ Usa do .pop() para retirar a movimentação e exibe qual movimentação foi removida.
+#^ Usa do .drop() para retirar a movimentação e exibe qual movimentação foi removida.
 def excluir_movimentacao():
     while True:
+        dados = carregar_movimentacoes(caminho_csv= caminho_csv)
         limpa_terminal()
         print("=== EXCLUIR MOVIMENTAÇÃO ===")
         imprimir_extrato()
@@ -238,60 +260,50 @@ def excluir_movimentacao():
             print("Digite um número positivo")
             input("Precione enter para seguir...")
             continue
-        if  input_usuario > len(movimentacoes):
+        if  input_usuario > len(dados):
             print("movimentação inexistente")
             continue
 
-        removido = movimentacoes.pop(input_usuario - 1 )
+
+        try:
+            #! Tira a linha pelo index
+            dados = dados.drop(input_usuario - 1, axis=0)
+            #! Reseta os dados
+            dados.reset_index(drop = True, inplace = True)
+            #! Salva o .csv
+            dados.to_csv(caminho_csv, index=False)
+            print(f"Movimentação excluída com sucesso!")
+        except Exception as e:
+            print(f"erro: {e}")
+
         limpa_terminal()
-        print(f"Movimentação {removido["descricao"]} excluída com sucesso!")
         input("Precione enter para seguir...")
       
 
 #* Função de execução aqui usa de intermédio as demais funções produzidas anteriormente
 #^ While true: loop para escolha das opções e realizar as demais opções
-#^ De acordo com a opção solicitada pelo input realiza algum tipo de operação
+#^ De acordo com a opção solicitada pelo input realiza algum tipo de operação   
 def executar():
     while True:
-        print("\n === GERENCIADOR FINANCEIRO ===")
-        print("1 - Cadastrar movimentação")
-        print("2 - Consultar saldo")
-        print("3 - Imprimir extrato das movimentações")
-        print("4 - Contar movimentações")
-        print("5 - Filtrar por tipo")
-        print("6 - Excluir Movimentações")
-        print("0 - Sair")
-
-        opcao = input("Escolha: ").strip()
-
-        if opcao == "1":
-            cadastrar_movimentacao()
-        elif opcao == "2":
-            print(f"Saldo: R$ {calcular_saldo():.2f}")
-        elif opcao == "3":
-            imprimir_extrato()
-        elif opcao == "4":
-            contar_movimentacoes()
-        elif opcao == "5":
-            filtrar_movimentacoes()
-        elif opcao == "6":
-            excluir_movimentacao()
-        elif opcao == "0":
-            limpa_terminal()
-            break
-
-        else:
-            print("Opção inválida.")
-
-        input("\npressione enter para seguir...")
         limpa_terminal()
         
+        menu_financeiro = {
+            "1": ("Cadastrar movimentação", cadastrar_movimentacao),
+            "2": ("Consultar saldo", consultar_saldo),
+            "3": ("Imprimir extrato das movimentações", imprimir_extrato),
+            "4": ("Contar movimentações", contar_movimentacoes),
+            "5": ("Filtrar por tipo", filtrar_movimentacoes),
+            "6": ("Editar movimentação", editar_movimentacao),
+            "7": ("Excluir Movimentações", excluir_movimentacao),
+            "0": ("Sair", None)  # None indica que a opção encerra o loop
+        }
 
-def limpa_terminal():
-    os.system(('cls' if os.name == 'nt' else 'clear'))
-    
+        menu_terminal("gerenciador financeiro", menu_financeiro)
+        return
+        
 
 if __name__ == "__main__":
     limpa_terminal()
-    criar_csv()
+    if not caminho_csv.exists():
+        criar_csv()
     executar()

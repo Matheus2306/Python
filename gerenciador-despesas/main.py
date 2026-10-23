@@ -299,6 +299,7 @@ def executar():
         }
 
         menu_terminal("gerenciador financeiro", menu_financeiro)
+       
         return
         
 

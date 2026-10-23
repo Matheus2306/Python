@@ -1,7 +1,5 @@
-
 import csv
 from pathlib import Path
-
 from entity.movimentacao import Movimentacao
 from decimal import Decimal
 
@@ -34,9 +32,34 @@ class CsvRepository:
             newline="",
             encoding="utf-8"
         ) as arquivo:
-
             escritor = csv.DictWriter(
                 arquivo,
                 fieldnames=["descricao", "tipo", "valor"]
             )
-            escritor.writerow(movimentacao)
+
+            escritor.writerow({
+                "descricao": movimentacao.descricao,
+                "tipo": movimentacao.tipo,
+                "valor": str(movimentacao.valor)
+            })
+
+    def listar(self) -> list[Movimentacao]:
+        movimentacoes = []
+
+        with open(
+            self.caminho,
+            "r",
+            newline="",
+            encoding="utf-8"
+        ) as arquivo:
+            leitor = csv.DictReader(arquivo)
+
+            for linha in leitor:
+                movimentacao = Movimentacao(
+                    descricao = linha["descricao"],
+                    tipo = linha["tipo"],
+                    valor = Decimal(linha["valor"].replace(",", "."))
+                    )
+
+                movimentacoes.append(movimentacao)
+        return movimentacoes

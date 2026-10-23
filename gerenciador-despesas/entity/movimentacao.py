@@ -10,6 +10,8 @@ class Movimentacao:
     #& __post_init__ após rodar  o __init__ passa pelo post init que realiza validações de dados, etc...
     #& raise usada para lançar exceção, que o código por fora usa do try/except para capturar a exceção lançada
     #& ValueError é um tipo de excessão usada para mostrar um valor inadequado para operação
+    #& a seta "->"  representa que o método irá retornar um valor x (str, Decimal, int, bool, classes, etc...)
+
     def __post_init__(self):
         if not isinstance(self.descricao, str) or not self.descricao.strip():
             raise ValueError("Descrição não pode ser vazia e deve ser textos.")

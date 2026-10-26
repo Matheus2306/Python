@@ -1,5 +1,6 @@
 from decimal import Decimal
 from repositories.movimentacao_repository import MovimentacaoRepository
+from entity.movimentacao import Movimentacao
 
 
 class MovimentacaoService:
@@ -20,3 +21,18 @@ class MovimentacaoService:
 
         #! Outra forma de chagar ao mesmo resultado usando um "generator expression" porém economizando em variáveis intermediarias como os "valores" e um for deixando toda a execução mais simples
         return sum((mov.calcular_valor_assinado() for mov in movimentacoes),Decimal("0"))
+
+    def cadastrar(
+        self, 
+        descricao: str,
+        tipo: str,
+        valor: Decimal
+        ) -> None:
+
+        movimentacao = Movimentacao(
+            descricao= descricao,
+            tipo= tipo,
+            valor= valor
+            )
+
+        self.repositorio.salvar(movimentacao)

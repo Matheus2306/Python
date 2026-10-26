@@ -40,12 +40,3 @@ class Movimentacao:
     #* Exibe um resumo em string
     def exibir_resumo(self) -> str:
         return f"{self.descricao} | {self.tipo} | R$ {self.valor:.2f}"
-        
-
-try:
-    receita = Movimentacao("passo", "receita", Decimal("3255"))
-    despesa = Movimentacao("Mercado", "despesa", Decimal("250.00"))
-
-    print(receita.exibir_resumo())
-except Exception as e:
-    print(e)

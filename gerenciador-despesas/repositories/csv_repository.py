@@ -55,10 +55,12 @@ class CsvRepository:
             leitor = csv.DictReader(arquivo)
 
             for linha in leitor:
+                valor_sinal = Decimal(linha["valor"].replace(",", "."))
+                
                 movimentacao = Movimentacao(
                     descricao = linha["descricao"],
                     tipo = linha["tipo"],
-                    valor = Decimal(linha["valor"].replace(",", "."))
+                    valor = valor_sinal
                     )
 
                 movimentacoes.append(movimentacao)

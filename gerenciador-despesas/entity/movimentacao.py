@@ -1,11 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
+from uuid import uuid4, UUID
 
 @dataclass
 class Movimentacao:
     descricao:str
     tipo:str
     valor:Decimal
+    id:UUID = field(default_factory= uuid4)
 
     #& __post_init__ após rodar  o __init__ passa pelo post init que realiza validações de dados, etc...
     #& raise usada para lançar exceção, que o código por fora usa do try/except para capturar a exceção lançada
@@ -13,6 +15,9 @@ class Movimentacao:
     #& a seta "->"  representa que o método irá retornar um valor x (str, Decimal, int, bool, classes, etc...)
 
     def __post_init__(self):
+        if not isinstance(self.id, UUID):
+            raise ValueError("O identificador deve ser um UUID válido.")
+
         if not isinstance(self.descricao, str) or not self.descricao.strip():
             raise ValueError("Descrição não pode ser vazia e deve ser textos.")
 

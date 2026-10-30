@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from repositories.movimentacao_repository import MovimentacaoRepository
 from entity.movimentacao import Movimentacao
 
@@ -27,12 +27,34 @@ class MovimentacaoService:
         descricao: str,
         tipo: str,
         valor: Decimal
-        ) -> None:
+        ) -> Movimentacao:
 
         movimentacao = Movimentacao(
             descricao= descricao,
             tipo= tipo,
             valor= valor
             )
-
         self.repositorio.salvar(movimentacao)
+        return movimentacao
+
+    def listar_movimentacoes(self) -> list[Movimentacao]:
+        return self.repositorio.listar()
+
+    def filtrar_por_tipo(self, tipo: str) -> list[Movimentacao]:
+        
+        normalizado = tipo.strip().upper()
+
+        if normalizado not in ("R", "D"):
+            raise ValueError("Selecione R para receita ou D para despesa.")
+        
+        tipo_selecionado = "receita" if normalizado == "R" else "despesa"
+
+        movimentacoes = self.repositorio.listar()
+
+        filtrados = []
+
+        for mov in movimentacoes:
+            if mov.tipo == tipo_selecionado:
+                filtrados.append(mov)
+
+        return filtrados

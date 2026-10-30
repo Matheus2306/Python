@@ -1,9 +1,6 @@
 import pytest
 from decimal import Decimal
-from pathlib import Path
 from entity.movimentacao import Movimentacao
-from repositories.csv_repository import CsvRepository
-
 @pytest.mark.parametrize(
         "tipo",
         [

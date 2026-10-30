@@ -16,7 +16,7 @@ class FakeRepository:
 
     def buscar_por_id(self, identificador: UUID) -> Movimentacao | None:
         for mov in self.movimentacoes:
-            if UUID(mov.id) == identificador:
+            if mov.id == identificador:
                 return mov
         return None
 
@@ -40,8 +40,6 @@ class FakeRepository:
                 return True
 
         return False
-
-
 
 def test_calcular_saldo_com_fake():
     movimentacoes = [
@@ -272,3 +270,105 @@ def test_atualizar_inexistente():
     assert len(lista) == 1
     assert lista[0] == mov
     assert lista[0] is mov
+
+def test_service_atualizar_existente():
+    movimentacoes = [
+            Movimentacao("Salário", "receita", Decimal("3500")),
+            Movimentacao("Mercado", "despesa", Decimal("250")),
+            Movimentacao("Freelance", "receita", Decimal("800"))
+    ]
+
+    fake = FakeRepository(movimentacoes)
+    servico = MovimentacaoService(fake)
+
+    # Atualizar um registro.
+    atualizar = Movimentacao(
+        id= movimentacoes[0].id,
+        descricao= "Recuperado",
+        tipo= "despesa",
+        valor= Decimal("221")
+    )
+
+    resultado = servico.atualizar_movimentacao(
+        descricao= atualizar.descricao,
+        tipo= atualizar.tipo,
+        valor= atualizar.valor,
+        identificador=atualizar.id
+    )
+    assert resultado
+    # Verificar que os dados mudaram.
+    lista = servico.listar_movimentacoes()
+    assert lista[0] == atualizar
+    # Verificar que o UUID permaneceu igual.
+    assert lista[0].id == movimentacoes[0].id
+
+def test_service_atualizar_inexistente():
+    movimentacoes = [
+        Movimentacao("Salário", "receita", Decimal("3500")),
+        Movimentacao("Mercado", "despesa", Decimal("250")),
+        Movimentacao("Freelance", "receita", Decimal("800"))
+    ]
+    
+    fake = FakeRepository(movimentacoes)
+    servico = MovimentacaoService(fake)
+    
+    atualizar = Movimentacao(
+        descricao= "Recuperado",
+        tipo= "despesa",
+        valor= Decimal("221")
+    )
+    
+    resultado = servico.atualizar_movimentacao(
+        descricao= atualizar.descricao,
+        tipo= atualizar.tipo,
+        valor= atualizar.valor,
+        identificador=atualizar.id
+    )
+
+    lista = servico.listar_movimentacoes()
+
+    esta_na_lista = False
+    for linha in lista:
+        if atualizar.id == linha.id:
+            esta_na_lista =True
+    
+
+    assert resultado is False
+    assert esta_na_lista is False
+
+
+def test_service_excluir_existente():
+    movimentacoes = [
+        Movimentacao("Salário", "receita", Decimal("3500")),
+        Movimentacao("Mercado", "despesa", Decimal("250")),
+        Movimentacao("Freelance", "receita", Decimal("800"))
+    ]
+
+    fake = FakeRepository(movimentacoes)
+    servico = MovimentacaoService(fake)
+
+    resultado = servico.excluir_movimentacao(movimentacoes[0].id)
+
+    lista = servico.listar_movimentacoes()
+
+    assert resultado
+    assert len(lista) == 2
+
+
+def test_service_excluir_inexistente():
+    movimentacoes = [
+        Movimentacao("Salário", "receita", Decimal("3500")),
+        Movimentacao("Mercado", "despesa", Decimal("250")),
+        Movimentacao("Freelance", "receita", Decimal("800"))
+    ]
+  
+    fake = FakeRepository(movimentacoes)
+    servico = MovimentacaoService(fake)
+  
+    resultado = servico.excluir_movimentacao(uuid4())
+  
+    lista = servico.listar_movimentacoes()
+  
+    assert resultado is False
+    assert len(lista) == 3
+  

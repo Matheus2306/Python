@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 from repositories.movimentacao_repository import MovimentacaoRepository
 from entity.movimentacao import Movimentacao
+from uuid import UUID
 
 
 class MovimentacaoService:
@@ -58,3 +59,26 @@ class MovimentacaoService:
                 filtrados.append(mov)
 
         return filtrados
+
+    def excluir_movimentacao(self, id: UUID) -> bool:
+        return self.repositorio.excluir(id)
+
+    def atualizar_movimentacao(
+        self, 
+        identificador: UUID,
+        descricao: str,
+        tipo: str,
+        valor: Decimal):
+
+        movimentacao = self.repositorio.buscar_por_id(identificador)
+        if movimentacao == None:
+            return False
+
+        atualizar = Movimentacao(
+            descricao= descricao,
+            tipo= tipo,
+            valor= valor,
+            id= identificador
+        )
+
+        return self.repositorio.atualizar(atualizar)

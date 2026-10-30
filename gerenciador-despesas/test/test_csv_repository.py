@@ -114,6 +114,7 @@ def test_buscar_pelo_id(tmp_path: Path):
 
     resultado = repositorio.buscar_por_id(movs[0].id)
 
+    assert len(repositorio.listar()) == 2
     assert resultado == movs[0]
     assert isinstance(resultado, Movimentacao)
 
